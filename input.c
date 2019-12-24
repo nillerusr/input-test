@@ -94,7 +94,6 @@ int main()
 	printf("Android( Volume up )\nGentoo( Volume down )\n");
 	while(1)
 	{
-		poll(&device, 1, timeout_ms);
 		read(device.fd, &ev, sizeof(ev));
 
 /*		if( KeyPressTime(116) == 3)
@@ -110,7 +109,7 @@ int main()
 			else
 				buttons[ev.code].time = 0;
 
-			printf("code: %d\n\n", ev.code);
+			printf("code: %d, value = %d\n", ev.code, ev.value);
 			if( ev.code == 115 && ev.value == 0 )
 			{
 				printf("\nBooting android...\n");
