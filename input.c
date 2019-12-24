@@ -55,18 +55,30 @@ static void skeleton_daemon()
 	}
 }
 
+
+void SetPowerState(const char *state)
+{
+	FILE *f = fopen("/sys/power/state","w");
+	fprintf(f,"%s",state);
+	fclose(f);
+}
+
+void EnableFramebuffer()
+{
+	FILE *f = fopen("/sys/class/graphics/fb0/pan","w");
+	fprintf(f,"0,854\n");
+	fclose(f);
+}
+
 int KeyPressTime( int code )
 {
 	int i;
 	struct timeval time;
 	gettimeofday( &time, NULL );
-	if( buttons[code].time == 0 )
-		return -1;
-	else
-		return time.tv_sec-buttons[code].time;
+	return time.tv_sec-buttons[code].time;
 }
 
-int getBrightness()
+int GetBrightness()
 {
 	int b;
 	FILE *f = fopen(BACKLIGHT,"r");
@@ -75,7 +87,7 @@ int getBrightness()
 	return b;
 }
 
-void setBrightness(int b)
+void SetBrightness(int b)
 {
 	FILE *f = fopen(BACKLIGHT,"w");
 	fprintf(f,"%d",b);
@@ -84,45 +96,48 @@ void setBrightness(int b)
 
 int main()
 {
-	int timeout_ms = 100;
 	char devname[] = "/dev/input/event0";
 	struct pollfd device;
-	device.fd = open(devname, O_RDONLY|O_NONBLOCK);
 	struct input_event ev;
 	FILE *f;
 
-	printf("Android( Volume up )\nGentoo( Volume down )\n");
+	skeleton_daemon();
+
+	device.fd = open(devname, O_RDONLY|O_NONBLOCK);
+
+
 	while(1)
 	{
 		read(device.fd, &ev, sizeof(ev));
 
-/*		if( KeyPressTime(116) == 3)
+		if( KeyPressTime(116) == 3)
 		{
-			system("echo fucking power\n");
+			system("reboot\n");
 			buttons[116].time = 0;
-		}*/
+		}
 
 		if(ev.type == 1)
 		{
+			printf("ev.code: %d, ev.value: %d\n", ev.code, ev.value);
 			if( ev.value == 1 )
 				buttons[ev.code].time = ev.time.tv_sec;
 			else
 				buttons[ev.code].time = 0;
 
-			printf("code: %d, value = %d\n", ev.code, ev.value);
-			if( ev.code == 115 && ev.value == 0 )
+			if( ev.code == 116 && ev.value == 0 )
 			{
-				printf("\nBooting android...\n");
-				f=fopen("/.android","w");
-				fclose(f);
-				break;
-			}
-			else if( ev.code == 114 && ev.value == 0 )
-			{
-				printf("\nBooting gentoo...\n");
-				f=fopen("/.gentoo","w");
-				fclose(f);
-				break;
+				if( GetBrightness() > 0 )
+				{
+					SetBrightness(0);
+					SetPowerState("standby");
+				}
+				else
+				{
+					SetPowerState("on");
+					usleep(600000);
+					SetBrightness(100);
+					EnableFramebuffer();
+				}
 			}
 		}
 	}
