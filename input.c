@@ -14,7 +14,6 @@
 typedef struct buttons_s
 {
 	unsigned long time;
-	char value;
 } buttons_t;
 
 buttons_t buttons[512];
@@ -61,7 +60,7 @@ int KeyPressTime( int code )
 	int i;
 	struct timeval time;
 	gettimeofday( &time, NULL );
-	if( buttons[code].value != 1 )
+	if( buttons[code].time == 0 )
 		return -1;
 	else
 		return time.tv_sec-buttons[code].time;
@@ -97,52 +96,35 @@ int main()
 	{
 		poll(&device, 1, timeout_ms);
 		read(device.fd, &ev, sizeof(ev));
-		/*if( buttons[116].value == 2 )
-		{
-			if( getBrightness() == 0 )
-				setBrightness(100);
-			else
-				setBrightness(0);
-			buttons[116].value = 0;
-		}*/
-
-		if( buttons[115].value == 2 )
-		{
-			printf("\nBooting android...\n");
-			buttons[115].value = 0;
-			f=fopen("/.android","w");
-			fclose(f);
-			break;
-		}
-
-		if( buttons[114].value == 2 )
-		{
-			printf("\nBooting gentoo...\n");
-			buttons[114].value = 0;
-			f=fopen("/.gentoo","w");
-			fclose(f);
-			break;
-		}
-
 
 /*		if( KeyPressTime(116) == 3)
 		{
-			//system("echo fucking power\n");
-			buttons[116].value = 0;
+			system("echo fucking power\n");
+			buttons[116].time = 0;
 		}*/
+
 		if(ev.type == 1)
 		{
-//			printf("%d\n",ev.code);
 			if( ev.value == 1 )
-			{
-//				printf("ev.code:  %d\n",ev.code);
 				buttons[ev.code].time = ev.time.tv_sec;
-			}
-
-			if( buttons[ev.code].value == 1 && ev.value == 0 )
-				buttons[ev.code].value = 2;
 			else
-				buttons[ev.code].value = ev.value;
+				buttons[ev.code].time = 0;
+
+			printf("code: %d\n\n", ev.code);
+			if( ev.code == 115 && ev.value == 0 )
+			{
+				printf("\nBooting android...\n");
+				f=fopen("/.android","w");
+				fclose(f);
+				break;
+			}
+			else if( ev.code == 114 && ev.value == 0 )
+			{
+				printf("\nBooting gentoo...\n");
+				f=fopen("/.gentoo","w");
+				fclose(f);
+				break;
+			}
 		}
 	}
 
