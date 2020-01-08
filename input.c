@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <string.h>
 
 const char *getBootMode( void )
@@ -44,43 +45,62 @@ const char *getBootMode( void )
 	return buf;
 }
 
+void bootsystem(const char *system)
+{
+	FILE *f;
+	char filename[64];
+	sprintf(filename,"/.%s",system);
+	printf("\nBooting %s...\n", system);
+	f=fopen(filename,"w");
+	fclose(f);
+
+}
+
 int main()
 {
-	int timeout_ms = 100;
+	int timeout = 5;
+	int savedtime;
 	char devname[] = "/dev/input/event0";
 	struct pollfd device;
 	device.fd = open(devname, O_RDONLY|O_NONBLOCK);
 	struct input_event ev;
+	struct timeval time;
+
 	FILE *f;
 
 	if( strcmp(getBootMode(), "charger") == 0 )
 	{
-		f=fopen("/.android","w");
-		fclose(f);
+		bootsystem("android");
 		return 0;
 	}
 
+	gettimeofday(&time, 0);
+	savedtime = time.tv_sec;
 	printf("Android( Volume up )\nGentoo( Volume down )\n");
+
 	while(1)
 	{
 		read(device.fd, &ev, sizeof(ev));
+		gettimeofday(&time, 0);
 
 		if(ev.type == 1)
 		{
 			if( ev.code == 115 && ev.value == 0 )
 			{
-				printf("\nBooting android...\n");
-				f=fopen("/.android","w");
-				fclose(f);
+				bootsystem("android");
 				break;
 			}
 			else if( ev.code == 114 && ev.value == 0 )
 			{
-				printf("\nBooting gentoo...\n");
-				f=fopen("/.gentoo","w");
-				fclose(f);
+				bootsystem("gentoo");
 				break;
 			}
+		}
+
+		if( time.tv_sec - savedtime >= timeout )
+		{
+			bootsystem("android");
+			break;
 		}
 	}
 
